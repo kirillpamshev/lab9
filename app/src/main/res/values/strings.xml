@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">lab9</string>
+    <string name="typeField">Выберите поле</string>
+    <string name="enter">ENTER</string>
+    <string name="inputNamePlan">Введите имя тарифного плана</string>
+    <string name="typeBroadcast">Выберите тип вещания</string>
+    <string name="pa">Общедоступность</string>
+</resources>
