@@ -12,13 +12,41 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import java.util.ArrayList
 
+object DATA_KEYS {
+    const val SB_LIST = "SB_LIST"
+    const val MODEL_DB = "MODEL_DB"
+    const val ENTER_BROADCAST = "enterBroadcast"
+    const val ENTER_SERVICE_PLAN = "ServicePlan"
+    const val ENTER_NAME = "enterName"
+    const val ENTER_FIELD = "enterField"
+}
 
-/*
----Задание 1.
-База данных тарифных планов оператора. Поля: название, тип вещания (обычный/HD), флаг общедоступности.*/
+object REQUEST_CODES {
+    const val PRINT_CODE = 10008
+    const val EDIT_CODE = 10006
+    const val EDIT_SEARCH_CODE = 10005
+    const val FIND_CODE = 10004
+    const val FIND_FIELD_CODE = 10003
+    const val ADD_CODE = 10001
+    const val SORT_CODE = 10002
+    const val DELETE_CODE = 10007
+}
+
+object USING_CONST_COLLECTIONS {
+    val sortMap: Map<Field, (ServicePlan, ServicePlan) -> Int> =
+        mapOf(Field.NAME to { a, b -> a.servicePlanName.compareTo(b.servicePlanName) },
+            Field.BROADCAST to { a, b -> a.typeOfBroadcast.compareTo(b.typeOfBroadcast) },
+            Field.PA to { a, b -> a.publicAvailability.compareTo(b.publicAvailability) })
+    val StrToBroadcast: Map<String, AllTypesOfBroadcast> =
+        mapOf("REGULAR" to AllTypesOfBroadcast.REGULAR, "HD" to AllTypesOfBroadcast.HD)
+    val BroadcastToStr: Map<AllTypesOfBroadcast, String> =
+        mapOf(AllTypesOfBroadcast.REGULAR to "REGULAR", AllTypesOfBroadcast.HD to "HD")
+    val IntToField: Map<Int, Field> = mapOf(0 to Field.NAME, 1 to Field.BROADCAST, 2 to Field.PA)
+}
+
 
 enum class Commands { // команды меню
-    UNKNOWN_COMMAND, ADD, SORT, FIND, SHOW, EDIT, DELETE, QUIT
+    UNKNOWN_COMMAND, ADD, SORT, FIND, SHOW, EDIT, DELETE
 }
 
 enum class Field {
@@ -34,16 +62,15 @@ data class ServicePlan(
     var typeOfBroadcast: AllTypesOfBroadcast = AllTypesOfBroadcast.REGULAR,
     var publicAvailability: Boolean = false,
 ) : Parcelable {
-    public var BroadcastToInt:Map<AllTypesOfBroadcast,Int> = mapOf(AllTypesOfBroadcast.REGULAR to 0, AllTypesOfBroadcast.HD to 1)
     constructor(parcel: Parcel) : this(
         parcel.readString()!!,
-        mapOf(0 to AllTypesOfBroadcast.REGULAR, 1 to AllTypesOfBroadcast.HD)[parcel.readInt()]!!,
+        USING_CONST_COLLECTIONS.StrToBroadcast[parcel.readString()]!!,
         parcel.readByte() != 0.toByte()
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(servicePlanName)
-        BroadcastToInt[typeOfBroadcast]?.let { parcel.writeInt(it) }
+        USING_CONST_COLLECTIONS.BroadcastToStr[typeOfBroadcast]?.let { parcel.writeString(it) }
         parcel.writeByte(if (publicAvailability) 1 else 0)
     }
 
@@ -65,9 +92,6 @@ data class ServicePlan(
 
 class ModelOfDB {
     private var objects : MutableList<ServicePlan> = mutableListOf()
-    private val sortMap: Map<Field, (ServicePlan, ServicePlan)-> Int> = mapOf(Field.NAME to { a, b -> a.servicePlanName.compareTo(b.servicePlanName) },
-        Field.BROADCAST to {a, b -> a.typeOfBroadcast.compareTo(b.typeOfBroadcast) },
-        Field.PA to { a, b -> a.publicAvailability.compareTo(b.publicAvailability) })
 
     fun add(Name: String, tb: AllTypesOfBroadcast, publicAvailability: Boolean): Boolean {
         if (findIndexByName(Name) != -1) {
@@ -97,11 +121,14 @@ class ModelOfDB {
     fun edit(oldName: String, newName: String, tb: AllTypesOfBroadcast, publicAvailability: Boolean): Boolean {
         val index = findIndexByName(oldName)
         return if (index != -1) {
-            objects[index].servicePlanName = newName
-            objects[index].typeOfBroadcast = tb
-            objects[index].publicAvailability = publicAvailability
-            true
-
+            if (oldName == newName || oldName != newName && findIndexByName(newName) ==-1)
+                false
+            else{
+                objects[index].servicePlanName = newName
+                objects[index].typeOfBroadcast = tb
+                objects[index].publicAvailability = publicAvailability
+                true
+            }
         } else {
             false
         }
@@ -110,7 +137,7 @@ class ModelOfDB {
     @RequiresApi(Build.VERSION_CODES.N)
     fun sort(ts: Field) { // сделать map от ts
         if (objects.isNotEmpty()) {
-            objects.sortWith(sortMap.getOrDefault(ts) { _, _ -> 0 })
+            objects.sortWith(USING_CONST_COLLECTIONS.sortMap.getOrDefault(ts) { _, _ -> 0 })
         }
     }
 
@@ -134,25 +161,30 @@ class ModelOfDB {
         return objects.toTypedArray() // преобразование в массив
     }
 
+    fun giveHashedNames(): Array<Int> {
+        return objects.map { it.servicePlanName.hashCode() }.toTypedArray()
+    }
+
     fun setAll(arr: Array<ServicePlan>){
         objects = arr.toMutableList()
     }
 
 }
 
-class Checker(checkRegString: String = "[A-Za-z0-9_]+") { // в конструктор передаётся не проверяемая строка а строка для регекспа!
-    private var checkRegex: Regex
-    init {
-        checkRegex = checkRegString.toRegex()
+class Reader {
+    fun read(editText: EditText): String{
+        return editText.text.toString()
     }
+}
+
+class Checker(checkRegString: String = "[A-Za-z0-9_]+") { // в конструктор передаётся не проверяемая строка а строка для регекспа!
+    private var checkRegex: Regex = checkRegString.toRegex()
     fun check(s: String): Boolean {
         return s.matches(checkRegex)
     }
 }
 
-
-class EnterBroadcast () {
-    private val StrToBroadcast: Map<String, AllTypesOfBroadcast> = mapOf("REGULAR" to AllTypesOfBroadcast.REGULAR, "HD" to AllTypesOfBroadcast.HD)
+class EnterBroadcast {
 
     fun precheck(s: Spinner):Boolean {
         return s.selectedItem != null
@@ -160,39 +192,28 @@ class EnterBroadcast () {
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun convert(s: Spinner):AllTypesOfBroadcast {
-        return StrToBroadcast.getOrDefault((s.selectedItem as String), AllTypesOfBroadcast.REGULAR)
+        return USING_CONST_COLLECTIONS.StrToBroadcast.getOrDefault((s.selectedItem as String), AllTypesOfBroadcast.REGULAR)
     }
 
 }
 
 class ToPrint {
-    private lateinit var cnt: Context
-    fun setContext(cnt: Context) : ToPrint{
+    private lateinit var cnt: AppCompatActivity
+    fun setContext(cnt: AppCompatActivity) : ToPrint{
         this.cnt = cnt
         return this
     }
 
-    val broadcastToString:Map<AllTypesOfBroadcast, String> = mapOf(AllTypesOfBroadcast.HD to "HD",
-        AllTypesOfBroadcast.REGULAR to "Обычный")
-
     @RequiresApi(Build.VERSION_CODES.N)
-    fun enumPrint (nameBroadcast: AllTypesOfBroadcast) : String = broadcastToString.getOrDefault(nameBroadcast, "Неизвестный")
-
     fun print(s: String) = Toast.makeText(cnt, s, Toast.LENGTH_SHORT).show()
 
-    @RequiresApi(Build.VERSION_CODES.N)
-    private fun printElement (element: ServicePlan) { //вывод элемента базы
-        print("Название тарифного плана: ${element.servicePlanName}")
-        print("Тип вещания: ${enumPrint(element.typeOfBroadcast)}")
-        print("Общедоступность: ${ if (element.publicAvailability)"YES" else "NO"}")
-        print("--------------------------------------------------------------------")
-    }
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun printList(arr: Array<ServicePlan>) {
         if (arr.isNotEmpty()) {
-            ToPrint().print("--------------------------------------------------------------------")
-            arr.forEach { printElement(it) }
+            val intent = Intent(cnt, ListActivity::class.java)
+            intent.putExtra(DATA_KEYS.SB_LIST, arr)
+            cnt.startActivityForResult(intent, REQUEST_CODES.PRINT_CODE)
         }
         else {
             print("Нет отображаемых элементов!")
@@ -223,7 +244,7 @@ class Menu {
     fun printMenu() {
         punkts.forEach {
             val rb = RadioButton(cnt)
-            rb.setText(it.Name)
+            rb.text = it.Name
             menuGroup.addView(rb)
         }
     }
@@ -244,108 +265,18 @@ class Menu {
 }
 
 
-class EnterUI() {
-    private lateinit var cnt: MainActivity
+class EnterUI (private var cnt: MainActivity) {
 
-    fun enter() {
+    fun enter(code: Int, sb: ServicePlan? = null) {
         val intent = Intent(cnt, EnterActivity::class.java)
-        cnt.startActivityForResult(intent, cnt.ENTER_ACTIVITY_CODE)
-    }
-}
-
-class FindUI(private var field: Field? = null, private val printer: ToPrint = ToPrint()) {
-
-    data class FuncsAndHelps(
-        val key: String, val name: String,
-        val help: String, val func: (Reader) -> Any?)
-
-    private val enterFuncHelp: Map <Field, FuncsAndHelps> = mapOf(
-        Field.NAME to FuncsAndHelps("1", "Название тарифного плана"
-            ,"Введите название тарифного плана: ", this::enterName),
-        Field.BROADCAST to FuncsAndHelps("2", "Тип вещания",
-            "Укажите тип тарифного плана цифрой (1 - REGULAR / 2 - HD): ", this::enterTypeOfBroadcast),
-        Field.PA to FuncsAndHelps("3", "Общедоступность",
-            "Общедопступный режим вещания (YES / NO): ", this::enterPublicAvailability)
-    )
-
-    private val stringToField: Map<String, Field> = mapOf("1" to Field.NAME, "2" to Field.BROADCAST, "3" to Field.PA)
-
-    fun enterField() : Field? {
-        printer.print("Выберете поле")
-        enterFuncHelp.values.sortedBy { it.key }.forEach{printer.print(it.key + " - " + it.name)}
-        printer.print(":")
-        val r = Reader()
-        if (r.read()){
-            field = stringToField[r.get()]
-
-        } else {
-            printer.print("Ошибка ввода!")
+        if (sb != null) {
+            intent.putExtra(DATA_KEYS.ENTER_SERVICE_PLAN, sb)
         }
-        if (field == null) printer.print("Неверно выбрано поле!")
-        return field
-    }
-
-    private fun enterName(r: Reader):String? {
-        return if(Checker().check(r.get())) {
-            r.get()
-        }
-        else
-        {
-            printer.print("Неверное имя тарифного плана!")
-            null
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.N)
-    private fun enterTypeOfBroadcast(r: Reader):AllTypesOfBroadcast?
-    {
-        return if(ConvertStringToBroadcast().precheck(r.get())){
-            ConvertStringToBroadcast().convert(r.get())
-        } else
-        {
-            printer.print("Неверный тип тарифного плана!")
-            null
-        }
-    }
-
-    private fun enterPublicAvailability(r: Reader):Boolean? {
-        return if(YesNoToBoolean().precheck(r.get())) {
-            YesNoToBoolean().convert(r.get())
-        }
-        else
-        {
-            printer.print("Неверный флаг общедоступности!")
-            null
-        }
-    }
-
-    fun enterValue():Any? {
-        var value: Any? = null
-        val r = Reader()
-        enterFuncHelp[field]?.help?.let { printer.print(it) }
-        if (!r.read()) {
-            printer.print("Ошибка ввода!")
-            return value
-        }
-        value = enterFuncHelp[field]?.func?.let { it(r) }
-        return value
-    }
-
-    fun set(field: Field) {
-        this.field = field
+        cnt.startActivityForResult(intent, code)
     }
 }
 
 class ViewOfDB(private var db: ModelOfDB, private var printer: ToPrint = ToPrint()) {
-    private val IntToField: Map<Int, Field> = mapOf(0 to Field.NAME, 1 to Field.BROADCAST, 2 to Field.PA)
-
-    private lateinit var cnt: MainActivity
-
-    fun setContext(cnt: MainActivity) {
-        this.cnt = cnt
-        printer.setContext(cnt)
-    }
-
     private val commandMap: Map<Commands,() -> Unit > = mapOf(Commands.ADD to  this::add,
         Commands.SORT to this::sort,
         Commands.FIND to this::search,
@@ -354,59 +285,117 @@ class ViewOfDB(private var db: ModelOfDB, private var printer: ToPrint = ToPrint
         Commands.DELETE to  this::delete,
     )
 
-    private fun add() {
-        EnterUI().enter()
+    private val requestCodeMap: Map<Int,(Intent)->Unit> = mapOf()
+
+    private lateinit var cnt: MainActivity
+
+    fun setContext(cnt: MainActivity) {
+        this.cnt = cnt
+        printer.setContext(cnt)
     }
 
+    private fun add() {
+        EnterUI(cnt).enter(REQUEST_CODES.ADD_CODE)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
     fun add(data: Intent) {
-        val servicePlan = data.getParcelableExtra<ServicePlan>(cnt.ENTER_SERVICE_PLAN)
-        db.add(servicePlan.servicePlanName, servicePlan.typeOfBroadcast, servicePlan.publicAvailability)
+        val servicePlan = data.getParcelableExtra<ServicePlan>(DATA_KEYS.ENTER_SERVICE_PLAN)
+        if (servicePlan != null) {
+            if(db.add(servicePlan.servicePlanName, servicePlan.typeOfBroadcast, servicePlan.publicAvailability))
+                printer.print("План добавлен успешно!")
+            else
+                printer.print("Ошибка добаления!")
+        }
     }
 
     private fun delete() {
-        val eVal = FindUI()
-        eVal.set(Field.NAME)
-        val curVal = eVal.enterValue() ?: return
-        if (db.delete(curVal as String)) {
-            printer.print("Элемент удалён!")
-        } else {
-            printer.print("Ошибка удаления!")
+        val intent = Intent(cnt, EnterPlanName::class.java)
+        cnt.startActivityForResult(intent, REQUEST_CODES.DELETE_CODE)
+    }
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun delete(data: Intent) {
+        val curVal = data.getStringExtra(DATA_KEYS.ENTER_NAME)
+        if (curVal != null) {
+            if (db.delete(curVal))
+                printer.print("Элемент удалён!")
+            else
+                printer.print("Ошибка удаления!")
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun edit() {
-        val eVal = FindUI()
-        eVal.set(Field.NAME)
-        val curVal = eVal.enterValue() ?: return
-        val el = EnterUI().enter() ?: return
-        if (db.edit(curVal as String, el.servicePlanName, el.typeOfBroadcast, el.publicAvailability)) {
-            printer.print("Элемент изменён!")
-        } else {
-            printer.print("Ошибка редактирования!")
+        val intent = Intent(cnt, EnterPlanName::class.java)
+        cnt.startActivityForResult(intent, REQUEST_CODES.EDIT_SEARCH_CODE)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun edit_search(data: Intent) {
+        val curVal = data.getStringExtra(DATA_KEYS.ENTER_NAME)
+        if (curVal != null) {
+            val tempArray: Array<ServicePlan> = db.find(Field.NAME, curVal)
+            if (tempArray.size == 1) {
+                val tempsp = tempArray[0]
+                EnterUI(cnt).enter(REQUEST_CODES.EDIT_CODE, tempsp)
+            } else
+                printer.print("Элемент не найден или ошибка БД")
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun edit(data: Intent) {
+        val servicePlan = data.getParcelableExtra<ServicePlan>(DATA_KEYS.ENTER_SERVICE_PLAN)
+        val curVal = data.getStringExtra(DATA_KEYS.ENTER_NAME)
+        if (servicePlan != null && curVal != null) {
+            if (db.edit(curVal, servicePlan.servicePlanName, servicePlan.typeOfBroadcast, servicePlan.publicAvailability))
+                printer.print("Элемент изменён!")
+            else
+                printer.print("Ошибка редактирования!")
         }
     }
 
     private fun sort() {
         val intent = Intent(cnt, EnterFieldActivity::class.java)
-        cnt.startActivityForResult(intent, cnt.ENTER_FIELD_SORT_CODE)
+        cnt.startActivityForResult(intent, REQUEST_CODES.SORT_CODE)
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun sort(data: Intent) {
-        val field = IntToField[data.getIntExtra(cnt.ENTER_FIELD,0)]
+        val field = USING_CONST_COLLECTIONS.IntToField[data.getIntExtra(DATA_KEYS.ENTER_FIELD,0)]
         if (field != null)
             db.sort(field)
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     private fun search() {
-        val eVal = FindUI()
-        val field = eVal.enterField() ?: return
-        val curVal = eVal.enterValue() ?: return
-        val arr = db.find(field, curVal)
-        printer.printList(arr)
+        val intent = Intent(cnt, EnterFieldActivity::class.java)
+        cnt.startActivityForResult(intent, REQUEST_CODES.FIND_FIELD_CODE)
     }
+
+    private fun search_field(data: Intent) {
+        val field = USING_CONST_COLLECTIONS.IntToField[data.getIntExtra(DATA_KEYS.ENTER_FIELD,0)]
+        if (field != null){
+             when(field) {
+                Field.NAME -> {
+                    Intent(cnt, EnterPlanName::class.java)
+                }
+                Field.BROADCAST -> {
+
+
+
+                }
+                Field.PA -> {
+
+                }
+            }
+
+        }
+    }
+
+    private fun search(data: Intent) {
+
+    }
+
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun printAll() {
@@ -415,12 +404,24 @@ class ViewOfDB(private var db: ModelOfDB, private var printer: ToPrint = ToPrint
     }
 
     fun runCommand (theCommand: Commands) = commandMap[theCommand]?.let { it() }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun getAnsver(requestCode: Int, data: Intent) {
+        when (requestCode) {
+        REQUEST_CODES.ADD_CODE  -> add(data)
+        REQUEST_CODES.SORT_CODE -> sort(data)
+        REQUEST_CODES.FIND_FIELD_CODE -> search_field(data)
+        REQUEST_CODES.FIND_CODE -> search(data)
+        REQUEST_CODES.EDIT_SEARCH_CODE -> edit_search(data)
+        REQUEST_CODES.EDIT_CODE -> edit(data)
+        REQUEST_CODES.DELETE_CODE -> delete(data)
+        }
+    }
 }
 
 open class App {
     protected val dataBase:ModelOfDB = ModelOfDB()
     val view = ViewOfDB(dataBase)
-    protected var theCommand = Commands.UNKNOWN_COMMAND
     protected val menu = Menu()
     init {
         menu.add(PunktOfMenu(1, "Добавить", Commands.ADD))
@@ -442,13 +443,14 @@ class AndroidApp(button: Button, radioGroup: RadioGroup, private var cnt: MainAc
     }
 
     fun setDB(bundle: Bundle) {
-        val array:ArrayList<ServicePlan> = bundle.getParcelableArrayList(cnt.MODEL_DB)!!
+        val array:ArrayList<ServicePlan> = bundle.getParcelableArrayList(DATA_KEYS.MODEL_DB)!!
         dataBase.setAll(array.toTypedArray())
     }
 
     fun getArrList():ArrayList<ServicePlan> = dataBase.giveAll().toCollection(ArrayList<ServicePlan>())
 
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onClick(p0: View?) {
         val entr = menu.selectMenu()
         if (entr != Commands.UNKNOWN_COMMAND)
@@ -460,11 +462,7 @@ class AndroidApp(button: Button, radioGroup: RadioGroup, private var cnt: MainAc
 
 
 class MainActivity : AppCompatActivity() {
-    val ENTER_ACTIVITY_CODE = 10001
-    val ENTER_FIELD_SORT_CODE = 10002
-    val MODEL_DB = "MODEL_DB"
-    val ENTER_SERVICE_PLAN = "ServicePlan"
-    val ENTER_FIELD = "enterField"
+
     private lateinit var enterBut:Button
     private lateinit var menuGroup:RadioGroup
     private lateinit var app: AndroidApp
@@ -483,14 +481,8 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == RESULT_OK) {
-            if (requestCode == ENTER_ACTIVITY_CODE) {
-                if (data != null)
-                    app.view.add(data)
-            }
-            else if (requestCode == ENTER_FIELD_SORT_CODE) {
-                if (data != null) {
-                    app.view.sort(data)
-                }
+            if (data != null) {
+                app.view.getAnsver(requestCode, data)
             }
 
         }
@@ -500,7 +492,7 @@ class MainActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         val arrayList = app.getArrList()
         if (arrayList.isNotEmpty()) {
-            outState.putParcelableArrayList(MODEL_DB, arrayList)
+            outState.putParcelableArrayList(DATA_KEYS.MODEL_DB, arrayList)
         }
     }
 

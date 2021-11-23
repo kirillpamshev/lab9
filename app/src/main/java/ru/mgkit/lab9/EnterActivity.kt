@@ -9,7 +9,7 @@ import android.widget.*
 import androidx.annotation.RequiresApi
 
 class EnterActivity : AppCompatActivity() {
-    val ENTER_SERVICE_PLAN: String = "ServicePlan"
+
     private lateinit var nameText: EditText
     private lateinit var tbSpin:Spinner
     private lateinit var availBox: CheckBox
@@ -21,15 +21,17 @@ class EnterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_enter)
+        printer = ToPrint()
         printer.setContext(this)
         nameText = findViewById(R.id.nameText)
         tbSpin = findViewById(R.id.tbSpin)
-        tbList = printer.broadcastToString.entries.sortedBy { it.key}.map { it.value }.toTypedArray()
+        tbList = USING_CONST_COLLECTIONS.BroadcastToStr.entries.sortedBy { it.key}.map { it.value }.toTypedArray()
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, tbList)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         tbSpin.adapter = adapter
         availBox = findViewById(R.id.availBox)
         enterBut = findViewById(R.id.enterplanBut)
+
         //
         // Забрать из bundle содержимое текст поля и положение спинера и установку чек бокса
         //
@@ -37,11 +39,10 @@ class EnterActivity : AppCompatActivity() {
             val plan = setResult()
             if (plan != null) {
                 val data = Intent().apply {
-                    putExtra(ENTER_SERVICE_PLAN,plan)
+                    putExtra(DATA_KEYS.ENTER_SERVICE_PLAN,plan)
                 }
                 setResult(RESULT_OK, data)
-                parentActivityIntent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(parentActivityIntent)
+                finish()
             }
         })
     }
@@ -49,11 +50,9 @@ class EnterActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.N)
     fun setResult():ServicePlan? {
         var plan:ServicePlan? = null
-        val inputNamePlan = Reader().read(nameText)
-
-        if (Checker().check(inputNamePlan.get())) {
+        if (Checker().check(Reader().read(nameText))) {
             val stringToBroadcast = EnterBroadcast()
-            if (stringToBroadcast.precheck(tbSpin)) plan = ServicePlan(inputNamePlan.get(),
+            if (stringToBroadcast.precheck(tbSpin)) plan = ServicePlan(Reader().read(nameText),
                 stringToBroadcast.convert(tbSpin),
                 availBox.isChecked)
             else

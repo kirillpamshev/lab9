@@ -33,8 +33,7 @@ class EnterFieldActivity : AppCompatActivity() {
                             putExtra(ENTER_FIELD,i)
                         }
                         setResult(RESULT_OK, data)
-                        parentActivityIntent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        startActivity(parentActivityIntent)
+                        finish()
                     }
                 }
             }

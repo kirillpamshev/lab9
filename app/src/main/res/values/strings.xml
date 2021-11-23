@@ -5,4 +5,8 @@
     <string name="inputNamePlan">Введите имя тарифного плана</string>
     <string name="typeBroadcast">Выберите тип вещания</string>
     <string name="pa">Общедоступность</string>
+    <string name="close">CLOSE</string>
+    <string name="nameOfPlan">Название:</string>
+    <string name="typeOfBroad">Тип вещения:</string>
+    <string name="allCan">Общий доступ:</string>
 </resources>

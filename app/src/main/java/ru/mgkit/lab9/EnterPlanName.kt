@@ -1,15 +1,17 @@
 package ru.mgkit.lab9
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 
 class EnterPlanName : AppCompatActivity() {
-    private val ENTER_NAME = "enterName"
     lateinit var button: Button
     lateinit var text: EditText
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_enter_plan_name)
@@ -18,15 +20,13 @@ class EnterPlanName : AppCompatActivity() {
         button.setOnClickListener {
             if (Checker().check(text.text.toString())){
                 val data = Intent().apply {
-                    putExtra(ENTER_NAME,text.text.toString())
+                    putExtra(DATA_KEYS.ENTER_NAME,text.text.toString())
                 }
                 setResult(RESULT_OK, data)
-                parentActivityIntent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(parentActivityIntent)
+                finish()
             }
             else
                 ToPrint().setContext(this).print("Неверное имя плана!")
         }
-
     }
 }

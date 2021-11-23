@@ -23,8 +23,7 @@ class EnterPA_Activity : AppCompatActivity() {
                 putExtra(ENTER_AVAILABLE, checkBox.isChecked)
             }
             setResult(RESULT_OK, data)
-            parentActivityIntent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            startActivity(parentActivityIntent)
+            finish()
 
         }
 
