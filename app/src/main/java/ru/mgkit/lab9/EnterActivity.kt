@@ -41,9 +41,7 @@ class EnterActivity : AppCompatActivity() {
         enterBut = findViewById(R.id.enterplanBut)
         image = findViewById(R.id.addImage)
 
-        //
-        // Забрать из bundle содержимое текст поля и положение спинера и установку чек бокса
-        //
+
         image.setOnClickListener {
             startActivityForResult(
                 Intent(Intent.ACTION_PICK).apply {

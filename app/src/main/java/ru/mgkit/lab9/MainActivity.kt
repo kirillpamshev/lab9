@@ -12,6 +12,7 @@ import android.widget.*
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import java.util.ArrayList
+import java.util.Objects.toString
 
 object DATA_KEYS {
     const val SB_LIST = "SB_LIST"
@@ -68,12 +69,14 @@ data class ServicePlan(
         parcel.readString()!!,
         USING_CONST_COLLECTIONS.StrToBroadcast[parcel.readString()]!!,
         parcel.readByte() != 0.toByte(),
+        Uri.parse(parcel.readString() ?: "")
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(servicePlanName)
         USING_CONST_COLLECTIONS.BroadcastToStr[typeOfBroadcast]?.let { parcel.writeString(it) }
         parcel.writeByte(if (publicAvailability) 1 else 0)
+        parcel.writeString(image?.toString())
     }
 
     override fun describeContents(): Int {
