@@ -61,6 +61,7 @@ data class ServicePlan(
     var servicePlanName: String = "unknown service plan name", // датакласс тарифного плана
     var typeOfBroadcast: AllTypesOfBroadcast = AllTypesOfBroadcast.REGULAR,
     var publicAvailability: Boolean = false,
+    //todo свойство для фото.
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readString()!!,
