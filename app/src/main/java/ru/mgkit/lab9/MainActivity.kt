@@ -2,6 +2,7 @@ package ru.mgkit.lab9
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcel
@@ -61,12 +62,12 @@ data class ServicePlan(
     var servicePlanName: String = "unknown service plan name", // датакласс тарифного плана
     var typeOfBroadcast: AllTypesOfBroadcast = AllTypesOfBroadcast.REGULAR,
     var publicAvailability: Boolean = false,
-    //todo свойство для фото.
+    var image : Uri? = null
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readString()!!,
         USING_CONST_COLLECTIONS.StrToBroadcast[parcel.readString()]!!,
-        parcel.readByte() != 0.toByte()
+        parcel.readByte() != 0.toByte(),
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -94,11 +95,11 @@ data class ServicePlan(
 class ModelOfDB {
     private var objects : MutableList<ServicePlan> = mutableListOf()
 
-    fun add(Name: String, tb: AllTypesOfBroadcast, publicAvailability: Boolean): Boolean {
+    fun add(Name: String, tb: AllTypesOfBroadcast, publicAvailability: Boolean, uri : Uri?): Boolean {
         if (findIndexByName(Name) != -1) {
             return false
         }
-        val el = ServicePlan(Name, tb, publicAvailability)
+        val el = ServicePlan(Name, tb, publicAvailability, uri)
         objects.add(el)
         return true
     }
@@ -303,7 +304,7 @@ class ViewOfDB(private var db: ModelOfDB, private var printer: ToPrint = ToPrint
     fun add(data: Intent) {
         val servicePlan = data.getParcelableExtra<ServicePlan>(DATA_KEYS.ENTER_SERVICE_PLAN)
         if (servicePlan != null) {
-            if(db.add(servicePlan.servicePlanName, servicePlan.typeOfBroadcast, servicePlan.publicAvailability))
+            if(db.add(servicePlan.servicePlanName, servicePlan.typeOfBroadcast, servicePlan.publicAvailability, servicePlan.image))
                 printer.print("План добавлен успешно!")
             else
                 printer.print("Ошибка добаления!")
@@ -376,7 +377,7 @@ class ViewOfDB(private var db: ModelOfDB, private var printer: ToPrint = ToPrint
     private fun search_field(data: Intent) {
         val field = USING_CONST_COLLECTIONS.IntToField[data.getIntExtra(DATA_KEYS.ENTER_FIELD,0)]
         if (field != null){
-             when(field) {
+            when(field) {
                 Field.NAME -> {
                     Intent(cnt, EnterPlanName::class.java)
                 }
@@ -409,13 +410,13 @@ class ViewOfDB(private var db: ModelOfDB, private var printer: ToPrint = ToPrint
     @RequiresApi(Build.VERSION_CODES.N)
     fun getAnsver(requestCode: Int, data: Intent) {
         when (requestCode) {
-        REQUEST_CODES.ADD_CODE  -> add(data)
-        REQUEST_CODES.SORT_CODE -> sort(data)
-        REQUEST_CODES.FIND_FIELD_CODE -> search_field(data)
-        REQUEST_CODES.FIND_CODE -> search(data)
-        REQUEST_CODES.EDIT_SEARCH_CODE -> edit_search(data)
-        REQUEST_CODES.EDIT_CODE -> edit(data)
-        REQUEST_CODES.DELETE_CODE -> delete(data)
+            REQUEST_CODES.ADD_CODE  -> add(data)
+            REQUEST_CODES.SORT_CODE -> sort(data)
+            REQUEST_CODES.FIND_FIELD_CODE -> search_field(data)
+            REQUEST_CODES.FIND_CODE -> search(data)
+            REQUEST_CODES.EDIT_SEARCH_CODE -> edit_search(data)
+            REQUEST_CODES.EDIT_CODE -> edit(data)
+            REQUEST_CODES.DELETE_CODE -> delete(data)
         }
     }
 }

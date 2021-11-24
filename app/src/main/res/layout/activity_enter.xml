@@ -71,7 +71,11 @@
             </TableRow>
 
         </TableLayout>
-
+        <ImageView
+            android:id="@+id/addImage"
+            android:background="@color/black"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"/>
         <Button
             android:id="@+id/enterplanBut"
             android:layout_width="match_parent"

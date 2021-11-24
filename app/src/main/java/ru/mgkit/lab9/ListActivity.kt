@@ -29,10 +29,12 @@ class ServicePlanAdapter(context: Context?, resource: Int, states: List<ServiceP
         val itemName: TextView  = view.findViewById(R.id.itemName)
         val itemTB: TextView = view.findViewById(R.id.itemTB)
         val itemPA: TextView = view.findViewById(R.id.itemPA)
+        val image : ImageView = view.findViewById(R.id.itemImage)
         val sp: ServicePlan = states[position]
         itemName.text = sp.servicePlanName
         itemTB.text = USING_CONST_COLLECTIONS.BroadcastToStr[sp.typeOfBroadcast]
         itemPA.text = if (sp.publicAvailability) "Да" else "Нет"
+        image.setImageURI(sp.image)
         return view
     }
 
